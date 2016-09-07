@@ -1,2 +1,235 @@
 # 本仓库存放《Effective Objective-C 2.0 编写高质量iOS与OS X代码的52个方法》这本书里面所有提到的例子。
 #请star支持，谢谢
+
+##写在最前面：
+这是我读这本书的第一遍，目前暂定为1.0版本吧。很多地方都还没有很好的理解透彻，只是理解到了一点皮毛，并没有理会到其中的真谛，我相信在我不断的实践中，会一点一点的理解透测，同时我也将会在此更新出来。
+
+##第一章 熟悉Objective-C
+####第1条：了解Objective-C语言的起源
+1、Objective-C 语法使用了`消息结构`而非`函数调用`</br>
+2、关键区别在于：使用消息结构的语言，其运行时所应执行的代码由运行环境来决定，而使用函数调用的语言，则由编译器决定。</br>
+3、Objective-C 为C语言添加了面向对象特效，是其超集。Objective-C使用动态绑定的消息结构，也就是说，在运行时才会检查对象类型。收到一条消息之后，究竟应执行任何代码，由运行期环境而非编译器来决定
+
+####第2条：在类的头文件中尽量少引入其他头文件
+`向前声明(@class XXX.h) 就是使用@class`</br>
+1、除非确有必要，否则不要引入头文件。一般来说，应在某个类的头文件中使用向前声明来提及别的类，并在实现头文件中引入那些类的头文件。这样做可以尽量降低类之间的耦合。</br>
+2、有时无法使用向前声明，比如要声明某个类遵循一项协议。这种情况下，尽量把“该类遵循某协议”的这条声明移至“class-continuation 分类”中。如果不行，就把协议单独在一个头文件中，然后将其引入。
+
+####第3条：多用字面量与法，少用与之等价的方法
+1、使用字面量语法更安全
+例如：
+ > id object1 = /**….**/; //有效对象
+> id object2 = /**….**/; //nil
+> id object3 = /**….**/; //有效对象
+
+> NSArray *arrayA = [NSArray arrayWithObjects:object1,object2,object3,nil];
+NSArray *arrayB = @[object1,object2,object3];
+
+按字面量语法创建的数组arrayB会抛出异常。而arrayA虽然能创建出来数组，但是只含有｀object1｀一个对象，因为｀arrayWithObjects｀方法会依次处理各个参数，直到发现nil为止，由于object2是nil，所以会提前结束。
+所以说，使用字面量语法会更安全。抛出异常令程序终止执行，这比创建好数组之后发现元素个数少了要好。向数组中插入nil通常说明程序错误，而通过异常就可以很快地发现这个错误。</br>
+
+2、局限性：字面量语法有个小小的限制，就是出了字符串以外，所创建出来的对象必须属于Fundation框架才行。</br>
+3、应该使用字面量语法来创建字符串、数值、数组、字典。与创建此类对象的常规方法相比，这么做更加简明扼要。</br>
+4、应该通过取下表操作来访问数组下标或字典中的键所对应的元素。</br>
+5、用字面量语法创建数组或字典时，若值中有nil，则会抛出异常。因此，无比确保值里不含nil</br>
+
+####第4条：多用类型常量，少用#define 预处理指令
+1、这样定义出来的常量没有类型信息，会让人不明白这个常量到底是干什么的。比方说使用 `static const NSTimeInterval kAnimationDuration ＝ 0.3; `   用此方法定义的常量包含类型信息。</br>
+2、常量名称命名方式。常用的命名法是：`若常量局限于某”编译单元”(也就是“实现文件”)之内，则在前面加字面k；若常量在类之外可见，则通常以类名为前缀。`  具体的命名请见第19条</br>
+3、定义常量的位置很重要，不应该放在头文件里面(.h) #define，static const 都不应该在头文件，原因可能有存在常量名称互相冲突。而且Objective-C没有 “名称空间” (namespace) 这一概念，所以那样做 (声明在头文件) 等于声明了一个全局变量</br>
+4、不打算公开的常量，应该将其定义在使用该常量的实现文件里。变量一定要同时用static 与 const 来声明，如果试图修改有 const 修饰符所声明的变量，那么编译器就会报错。`补充一点，使用#define定义的常量是可以修改的，说不定在某个时候，你定义的常量就被修改了。所以尽量不要使用#define`</br>
+5、使用static修饰符意味着该变量仅定义在此变量的编译单元中可见。编译器每收到一个编译单元，就会输出一份 “目标文件” 。在Objective-C的语言环境下，“编译单元” 一词通常指每个类的实现文件 (以 .m 为后缀名)。`假如声明此变量时不加static，则编译器会为它创建一个 “外部符号”。此时若是另外一个编译单元中也声明了同名变量，那么编译器就会抛出一条错误消息。  重点!!!!!`</br>
+6、对外公开一个常量，常见于调用 NSNotificationCenter 发通知，在 .m 文件中定义好通知名，需要将其对外公开，以供让其它对象发起通知。此类常量需要放在 “全局符号表” 中，以便可以在定义该常量的编译单元之外使用。所以其定义方式与上面讲的static const 有所不同，定义如下
+
+```
+/** 在 .m 文件中 */
+NSString *const viewControllerWillPushNotification = @"viewControllerWillPushNitification";
+/** 在 .h 文件中 */
+extern NSString * const viewControllerWillPushNotification;
+```
+
+####第5条：用枚举表示状态、选项、状态码
+1、应该用枚举来表示状态机的状态、传递给方法的选项以及状态码等值，给这些值起一个易懂的名字。</br>
+2、如果把传递给某个方法的选择表示为枚举状态，而多个选项又可同时使用，那么就讲各个选项值定义为2的幂，以便通过按位或操作将其组合起来。用  `NS_OPTIONS`</br>
+3、用 NS_ENUM 与 NS_OPTIONS 宏来定义枚举类型，并指明其底层数据类型。这样做可以确保枚举是用开发者所选的底层数据类型实现出来的，而不悔采用编译器所选的类型</br>
+4、在处理枚举类型的 `switch 最好不要实现 default 分支。这样的话，如果稍后又加了一种状态，那么编译器就会发出警告，提示新加入的状态并未在 switch 分支中处理。假如写上了 default 分支，那么它就会处理这个新状态，从而导致编译器不发警告信息。`
+
+##第二章对象、消息、运行期
+####第6条：理解 “属性” 这一概念
+`属性特质（四类）`</br>
+1、`原子性`，在默认情况下，有编译器所合成的方法会通过锁定机制确保其原子性 (atomicity)。如果属性具备nonatomic特质，则不适用同步锁。请注意，尽管没有名为 “atomic” 的特质（如果某属性不具备nonatomic特质，那它就是“原子的”，( atomic )）。`注意：在开发iOS程序时一般都会使用nonatomic属性，但是在开发Mac OS X程序时，使用atomic属性通常都不会有性能瓶颈`</br>
+2、`读／写权限`
+
+- 具备readwrite（读写）特质的属性拥有“getter”与“setter”。默认就有readwrite
+- 具备readonly（只读）特质的属性仅拥有获取方法。重新定义成读写属性，参见第27条
+
+3、`内存管理语义`
+
+- assign “设置方法” 只会执行针对 “纯量类型”（scalar type，例如CGFloat或NSInteger等）的简单赋值操作，重要：当属性所指的对象遭到摧毁之后不会置为nil。
+- strong 此特性表明该属性定义了一种 “拥有关系” （owning relationship）。为这种属性设置新值时，设置方法会先保留新值，并释放旧值，然后在将新值设置上去。
+- weak 此特性表明该属性定义了一种 “非拥有关系” （nonowning relationship）。为这种属性设置新值时，设置方法既不保留新值，也不会释放旧值。此特性同assign类似，然而在属性所指的对象遭到摧毁时，属性值也会清空（nil out）置为nil。
+- unsafe_unretained 此特性的语义和assign相同，但是他适用于 “对象类型”（object type），该特质表达一种 “非拥有关系”（“不保留”，unretained）,当目标对象遭到摧毁时，属性值不会自动清空（“不安全”，unsafe），这一点与weak有区别。
+- copy 此特质所表达的所属关系与strong类似。然而设置方法并不保留新值，而是将其“拷贝”（copy）。当属性类型为NSString *时，经常用此特性来保护其封装性，因为传递给设置方法的新值有可能只想一个NSMutableString类的实例。这个类是NSString的子类，表示一种可以修改其值的字符串，此时如是不拷贝字符串，那么设置完属性之后，字符串的值就可能会在对象不知情的情况下遭人更改。所以，这是就要拷贝一份“不可变”（imumutable）的字符串，确保对象中的字符串值不会无意间变动。只要实现属性所用的对象是“可变的”（mutable），就应该在设置新属性时拷贝一份。
+
+4、方法名
+
+- getter，如果属性是Boolean类型(BOOL)，想在获取方法上加 “is” 前缀，可以这样写，`@property(nonatomic,getter=isOn) BOOL on;`
+- setter，注意：在重写某些属性的时候，如果属性是用copy语义修饰的，init初始化时候，则应该像下面这样写
+ 
+ ```
+ //重写copy语义修饰的属性setter函数
+ - (void)setString:(NSString *)string {
+  _string = [string copy];
+ }
+ ```
+
+ ```
+ //init初始化
+ .h
+ @property (nonatomic, copy) NSString *firstName;
+ 
+ @property (nonatomic, copy) NSString *lastName;
+ - (instancetype)initWithFirstName:(NSString *)firstName lastNamne:(NSString *)lastName;
+ .m
+ - (instancetype)initWithFirstName:(NSString *)firstName
+                         lastNamne:(NSString *)lastName {
+     self = [super init];
+     if (self) {
+         _firstName = [firstName copy];
+         _lastName = [lastName copy];
+     }
+     return self;
+ }
+```
+
+####第7条：在对象内部尽量直接访问实例变量
+1、`点语法`和`直接访问实例变量`的区别
+
+- 由于直接访问实例变量不经过Objective-C的“方法派发”（method dispatch，参见第11条），所以速度比“点语法”快。因为在这种情况下，编译器所生成的代码会直接访问保存对象实例变量的那块内存。
+- 直接访问实例变量时候，不会调用其“设置方法(setter)，获取方法(getter)”，这就绕过了为相关属性所定义的“内存管理语义”。比方说，如果在ARC下直接访问一个声明为copy的属性，那么并不会拷贝该属性，只会保留新值并释放旧值。
+- 如果直接访问实例变量，那么不会触发“健值观测”(Key-Value Observing，KVO)通知。
+- 通过属性来访问有助于排查与之相关的错误。可以在setter／getter函数打断点调试。
+
+####第8条：理解“对象等同性”这一概念
+1、`==`操作符比较的事两个指针本身，而不是其所指对象。</br>
+2、NSObject协议中有两个用于判断等同性的关键方法
+
+```
+- (BOOL)isEqual:(id)object
+- (NSUInteger)hash
+```
+NSObject类对这两个方法的默认实现是：当且仅当其“指针值”（pointer value）完全相等时，这两个对象才相等。如果“isEqual:”方法判定两个对象相等，那么其hash方法也必须返回同一个值。但是两个对象的hash方法返回同一个值，那么“isEqual:”方法未必会认为两者相等。</br>
+3、特性类所具有的等同性判定方法，`NSArray`与`NSDictionary`类也具有特殊的等同性方法，前者名为`isEqualToArray:`，后者名为`isEqualToDictionary`。
+
+####第9条：以"类族模式"隐藏实现细节
+[demo](https://github.com/CYBoys/EffectiveObjective-CDemo/tree/master/%E7%AC%AC9%E6%9D%A1%EF%BC%9A%E4%BB%A5%E7%B1%BB%E6%97%8F%E6%A8%A1%E5%BC%8F%E9%9A%90%E8%97%8F%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82/ClassClusterDemo)
+####第10条：在既有类中使用关联对象存放自定义数据
+1、关联对象（Associated Object）
+对象关联类型（在第6条详解了`属性`这个概念）
+
+关联类型 | 等效的@property属性
+--------- | -------------
+OBJC_ASSOCIATION_ASSIGN | assign
+OBJC_ASSOCIATION_RETAIN_NONATOMIC|nonatomic,retain
+OBJC_ASSOCIATION_COPY_NONATOMIC | nonatomic,copy
+OBJC_ASSOCIATION_RETAIN | retain
+OBJC_ASSOCIATION_COPY | copy
+
+2、管理关联对象
+
+ - `void objc_setAssociatedObject(id object, const void *key, id value, objc_AssociationPolicy policy)`
+ </br>此方法以给定的键和策略为某对象设置关联对象值。
+ - `id objc_getAssociatedObject(id object, const void *key)`
+ </br>此方法根据给定的键从某对象中获取相应的关联对象值。
+ - `void objc_removeAssociatedObjects(id object)`
+  </br>此方法移除指定对象的全部关联对象。
+
+3、关联对象用法举例。
+ 背景：在iOS 8.0之前，也就是`UIAlertView`还没被Apple弃用的时候，在同一个控制器中，可能会弹出多个`alertView`，而且各自的处理逻辑都不一样，这时候我们就需要在UIAlertView的delegate函数里面判断是那个alertView被show出来了，然后再对应处理其相关逻辑。[demo](https://github.com/CYBoys/EffectiveObjective-CDemo/tree/master/%E7%AC%AC10%E6%9D%A1%EF%BC%9A%E5%9C%A8%E6%97%A2%E6%9C%89%E7%B1%BB%E4%B8%AD%E4%BD%BF%E7%94%A8%E5%85%B3%E8%81%94%E5%AF%B9%E8%B1%A1%E5%AD%98%E6%94%BE%E8%87%AA%E5%AE%9A%E4%B9%89%E6%95%B0%E6%8D%AE/AssociatedObjectDemo)
+ 
+```
+点击屏幕的弹出的alertView的log
+2016-09-06 14:00:22.791 StaticConst[2545:142222] touchBeganAlertViewBlock Index ==0
+2016-09-06 14:00:24.557 StaticConst[2545:142222] touchBeganAlertViewBlock Index!=0
+点击按钮弹出的alertView的log
+2016-09-06 14:00:26.677 StaticConst[2545:142222] btnIndex==0
+2016-09-06 14:00:28.482 StaticConst[2545:142222] btnIndex!=0
+```
+在现在的`UIAlertController`中，貌似就是引用了此做法，就直接在action的后面添加了一个block来执行相关action的操作。
+用到block的时候需要注意`retain cycle`，第40条详述此问题。
+
+####第11条：理解object_msgSend的作用
+1、`void objc_msgSend(id self, SEL _cmd, ...)` ，这是一个“参数可变的函数”（variadic function），能接受两个或两个以上的参数。第一个参数代表接收者，第二个参数代表选择子(器)(SEL是选择子的类型)，后续参数就是消息中的那些参数，其顺序不变。选择子指的就是方法的名字。</br>
+2、`objc_msgSend` 函数会根据接收者与选择子的类型来调用适当的方法。该方法需要在接收者所属的泪中搜寻其“方法列表”（list of methods），如果能找到与子名称相符的方法，就跳至其实现代码。若找不到，就沿着继承体系统继续向上查找，等找到合适的方法之后就跳转。如果最终还是没有找到相符的方法，那就执行“消息转发”（message forwarding）操作。第12条中详解。</br>
+3、objc_msgSend会将匹配结果缓存在“快速映射表”（fast map），每个类都有这样一块缓存。</br>
+4、Objective-C运行环境中的另一些处理函数
+
+- objc_msgSend_stret。如果待发送的消息要返回结构体，那么可交由此函数处理。只有当CPU的寄存器能够容纳的下消息返回类型时，这个函数才能处理此消息。若是返回值无法容纳于CPU寄存器中（比如说返回结构体太大了），否则就交给栈上面的某个变量来处理。
+- objc_msgSend_fpret。如果消息返回的是浮点数，交由此函数处理。
+- objc_msgSendSuper。如果要给超类发消息，交由此函数处理。
+
+5、Objective-C对象的每个方法都可以视为简单的C函数，原型如下：
+`<return_type> Class_selector(id self, SEL _cmd,...)`
+每个类里都有一张表格，其中的指针都会指向这种函数，而选择子的名词则是查表是所用的“键”。objc_msgSend等函数正是通过这张表格来寻找应该执行的方法并跳至其实现的。原型的样子和objc_msgSend函数很像，是为了利用“尾调用优化”（tail-call optimization）技术。</br>
+6、发给某对象的全部消息都要由“动态消息派发系统”（dynamic message dispatch system）来处理，该系统会查出对应的方法，并执行其代码。
+
+####第12条：理解消息转发机制
+1、如果对象所属的类或者父类都找不到相符的方法，就会启动“消息转发”（message forwarding）机制。</br>
+2、动态方法解析，当对象接收到无法解读的消息之后，首先会调用其所属类的下列类方法：</br>
+`+ (BOOL)resolveInstanceMethod:(SEL)sel`，表示这个类是否能新增一个实例方法用以处理此选择子。如果未实现的方法是不是实例方法而是类方法，那么在运行期间系统就会调用`+ (BOOL)resolveClassMethod:(SEL)sel`。</br>使用这种办法的前提是：相关方法的代码已经写好，只等着运行的时候动态插在类里面就可以，此方案常用来实现`@dynamic`属性。
+
+```
+/** 下列代码演示了如何使用“resolveInstanceMethod:” 来实现@dynamic属性 */
+
+id autoDictionaryGetter(id self,SEL _cmd);
+void autoDictionarySetter(id self,SEL _cmd,id value);
+
++ (BOOL)resolveInstanceMethod:(SEL)sel {
+    //* 将选择子化为字符串 */
+    NSString *selectorString = NSStringFromSelector(sel);
+    if (/* selector is from a @dynamic property */) {
+        //* 检测其是否表示设置方法，若前缀未set，则表示设置方法，否则就是获取方法 */
+        if ([selectorString hasPrefix:@"set"]) {
+            class_addMethod(self, sel, (IMP)autoDictionarySetter, "V@:@");
+        } else {
+            class_addMethod(self, sel, (IMP)autoDictionaryGetter, "@@:");
+        }
+        return YES;
+    }
+    return [super resolveInstanceMethod:sel];
+}
+
+```
+3、备援接收者，在这一步中，运行期系统会问它：能不能把这条消息转发给其他接收者来处理。与之对应的方法如下：</br>`- (id)forwardingTargetForSelector:(SEL)aSelector`，方法参数代表未知的选择子，若当前接收者能找到备援对象，则将其返回，若找不到，就返回nil。</br>请注意，我们无法操作经由这一步所转发的消息。若是想在发送给备援接收者之前先修改消息内容，那就得通过完整的消息转发机制来做。</br>
+4、完整的消息转发，这也是消息转发的最后一步。首先会创建`NSInvocation`对象，把尚未处理的那条消息有关的全部细节都封装到其中。此对象包含选择子，目标（target）及参数。在触发NSInvocation对象是，“消息派发系统”将亲自出马，把消息指派给目标对象。</br>`- (void)forwardInvocation:(NSInvocation *)anInvocation`，这个方法可以实现得很简单：只需改变调用目标，使消息在新目标上得以调用即可。然而这样实现出来的方法与“备援接收者”方案所实现的方法等效。比较有用的实现方法为：在触发消息前，先以某种方式改变消息内容，比如追加另外一个参数，或是改变选择子，等等。如果最后调用了`NSObject`类的方法，那么该方法还会继而调用`doesNotRecognizeSelector:`，以抛出异常，此异常表明选择子最终未能得到处理。</br>
+5、消息转发全流程
+![Effective Objective-C 配图.png](http://upload-images.jianshu.io/upload_images/959078-548e6a72dd2aa7f9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+6、动态方法解析例子演示 [Demo](https://github.com/CYBoys/EffectiveObjective-CDemo/tree/master/%E7%AC%AC12%E6%9D%A1%EF%BC%9A%E7%90%86%E8%A7%A3%E6%B6%88%E6%81%AF%E8%BD%AC%E5%8F%91%E6%9C%BA%E5%88%B6/MessageForwardingDemo)
+
+####第13条：用“方法调配技术”调试“黑盒方法”
+1、其实“方法调配技术”就是我们常说的`method swizzling`，[Demo](https://github.com/CYBoys/EffectiveObjective-CDemo/tree/master/%E7%AC%AC13%E6%9D%A1%EF%BC%9A%E7%94%A8%E2%80%9C%E6%96%B9%E6%B3%95%E8%B0%83%E9%85%8D%E6%8A%80%E6%9C%AF%E2%80%9D%E8%B0%83%E8%AF%95%E2%80%9C%E9%BB%91%E7%9B%92%E6%96%B9%E6%B3%95%E2%80%9D/Methodswizzling)
+####第14条：理解“类对象”的用意
+1、
+
+```
+typedef struct objc_class *Class;
+
+    struct objc_class {
+         Class isa;
+         Class super_class;
+         const char *name;
+         long version;
+         long info;
+         long instance_size;
+         struct objc_ivar_list *ivars;
+         struct objc_method_list **methodLists;
+         struct objc_cache *cache;
+         struct objc_protocol_list *protocols;
+};
+```
+此结构体存放类的`“元数据”`（metadata），例如类的实例实现了几个方法，具备多少个实例变量等消息。此结构体的首个变量也是`isa`指针，这说明Class本身亦为Objective-C对象。结构体里还有个变量叫做`super_class`，它定义了本类的超类。类对象所属的类型（也就是isa指针所指向的类型）是另外一个类，叫做`“元类”`（metaclass），用来表述类对象本身所具备的元数据。“类方法”就定义与此处，因为这些方法可以理解成类对象的实例方法。每个类仅有一个“类对象”，而每个“类对象”仅有一个与之相关的“元类”。
+![继承体系图.png](http://upload-images.jianshu.io/upload_images/959078-998606eb9dac1de9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+super_class指针确立了继承关系，而isa指针描述了实例所属的类。</br>
+2、在类继承体系中查询消息类型，`isMemberOfClass:` 能够判断出对象是否为某个特定类的实例，而`isKindOfClass:` 则能够判断出对象是否为某类或者其派生类的实例。
+
+#未完，会持续更新到完结！望持续关注！！！
