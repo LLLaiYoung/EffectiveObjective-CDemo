@@ -24,11 +24,19 @@
                                     <action selector="showAlertViewBtn:" destination="BYZ-38-t0r" eventType="touchUpInside" id="ZJP-M0-wtC"/>
                                 </connections>
                             </button>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="请观察控制台" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="3mz-Ni-V7K">
+                                <rect key="frame" x="249" y="118" width="102" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <color key="textColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
                         <constraints>
                             <constraint firstItem="4dl-hw-Cqp" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="3qg-qU-VUv"/>
                             <constraint firstItem="4dl-hw-Cqp" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="Ah1-zP-G6q"/>
+                            <constraint firstItem="3mz-Ni-V7K" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="evn-DG-WLc"/>
+                            <constraint firstItem="3mz-Ni-V7K" firstAttribute="top" secondItem="y3c-jy-aDJ" secondAttribute="bottom" constant="98" id="z6k-ND-4aL"/>
                         </constraints>
                     </view>
                 </viewController>
