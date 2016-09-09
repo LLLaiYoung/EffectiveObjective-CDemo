@@ -337,7 +337,7 @@ super_class指针确立了继承关系，而isa指针描述了实例所属的类
 -[NSArray mutableCopy] => NSMutableArray
 ```
 3、实现可变版本与不可变版本之间自由切换，提供三个方法：`copy`、`immutableCopy`、`mutableCopy`，其中，copy所返回的拷贝对象与当前对象的类型一致，而另外两个方法则分别返回不可变版本与可变版本的拷贝。</br>
-4、深拷贝&浅拷贝，深拷贝的意思就是：在拷贝对象自身时，将其低层数据也一并复制过去。Foundation 框架中的所有 collection 类在默认的情况下都执行浅拷贝，也就是说只拷贝容器对象本身，而不复制其中数据。如下图所示：![浅复制&深复制.png](http://upload-images.jianshu.io/upload_images/959078-1b7d1f1aa5b0862f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240) 
+4、深拷贝&浅拷贝，深拷贝的意思就是：在拷贝对象自身时，将其低层数据也一并复制过去。Foundation 框架中的所有 collection 类在默认的情况下都执行浅拷贝，也就是说只拷贝容器对象本身，而不复制其中数据。如下图所示：![浅复制&深复制.png](http://upload-images.jianshu.io/upload_images/959078-1b7d1f1aa5b0862f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240) </br>
 5、如何实现深拷贝？</br>答：以 `NSSet` 为例，NSSet有一个方法`- (instancetype)initWithSet:(NSSet<ObjectType> *)set copyItems:(BOOL)flag`，若 copyItems 参数为YES，则该方法会向数组中的每个元素发送copy信息，用拷贝好的元素创建新的set，并将其返回给调用者。同样的，`NSArray` 和 `NSDictionary`都有同样类似的深拷贝方法
 
 ```
