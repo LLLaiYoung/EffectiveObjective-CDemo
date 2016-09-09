@@ -231,5 +231,122 @@ typedef struct objc_class *Class;
 ![继承体系图.png](http://upload-images.jianshu.io/upload_images/959078-998606eb9dac1de9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 super_class指针确立了继承关系，而isa指针描述了实例所属的类。</br>
 2、在类继承体系中查询消息类型，`isMemberOfClass:` 能够判断出对象是否为某个特定类的实例，而`isKindOfClass:` 则能够判断出对象是否为某类或者其派生类的实例。
+##第三章 接口与API设计
+####第15条：用前缀避免命名空间冲突</br>
+1、Objective-C没有其他语言那种内置的命名空间（namespace）机制，所以就很容易出现重名。</br>
+2、Apple 宣称其保留使用所有“两字母前缀”的权利，所以你自己选用的前缀应该是三个字母的。</br>
+3、在类的实现文件中所用的纯C函数及全局变量，这个问题必须注意。在编译好的目标文件中（.o），这些名称是要算作“顶级符号”的。</br>
+4、选择与你的公司、应用程序或二者皆有关联之名称作为类名的前缀，并在所有代码中均适用这一前缀。</br>
+5、若自己所开发的程序中用到了第三方库，则应为其中的名称加上前缀。（真要这么做？）</br>
+
+####第16条：提供“全能初始化方法”
+1、什么是全能初始化方法？ 全能初始化方法就是指的在一个类中，可能有很多初始化方法，例如`NSDate`的初始化方法:</br>
+
+```
+- (id)init;
+- (id)initWithString:(NSString *)string;
+- (id)initWithTimeIntervalSinceNow:(NSTimeInterval)seconds;
+- (id)initWithTimeInterval:(NSTimeInterval)seconds
+                 sinceDate:(NSDate *)refDate;
+- (id)initWithTimeinterValSinceReferenceDate:(NSTimeInterval)seconds;
+- (id)initWithTimeIntervalSince1970:(NSTimeInterval)seconds;
+```
+在这些初始化方法里面`- (id)initWithTimeinterValSinceReferenceDate:(NSTimeInterval)seconds;`就是全能初始化方法，也就是说其他初始化函数都要调用它初始化。只有在全能初始化方法中才能存储内部数据。这样的话，当底层数据存储机制改变时，只需修改此方法的代码就好了，无需改动其他初始化方法。</br>
+2、在这里提到的细节可能不是很多，更多细节请看[demo](https://github.com/CYBoys/EffectiveObjective-CDemo/tree/master/%E7%AC%AC16%E6%9D%A1%EF%BC%9A%E6%8F%90%E4%BE%9B%E2%80%9C%E5%85%A8%E8%83%BD%E5%88%9D%E5%A7%8B%E5%8C%96%E6%96%B9%E6%B3%95%E2%80%9D/UniversalInitializationDemo)
+
+####第17条：实现 description 方法
+1、对于已经熟悉 iOS 开发的程序员来说，这是debug必备的技能。只需要在自定义的类中覆写`- (NSString *)description`函数即可，这个函数在事在你调用NSLog的时候输出的。与此相似的还有一个函数`- (NSString *)debugDescription`，这个函数是在调试器中使用命令的方式输出的，其命令格式`po +输出对象`，例如`po person`。需要注意的是，要在调试器中使用命令的方式输出需要打`断点`，使程序停在断点处，然后在调试器中使用命令。 [demo](https://github.com/CYBoys/EffectiveObjective-CDemo/tree/master/%E7%AC%AC17%E6%9D%A1%EF%BC%9A%E5%AE%9E%E7%8E%B0%20description%20%E6%96%B9%E6%B3%95/DescriptionDemo)
+
+####第18条：尽量使用不可变对象
+1、什么是不可变对象？</br>答：在使用属性时，将其声明为“只读”（read-only）。默认情况下，属性是 “即可读又可写的”（read-write），这样设计出来的类是可变的。</br>
+2、为什么要使用不可变对象？</br>答：把可变对象（mutable object）放入collection（NSSet，NSArray，NSDictionary以及其子类）之后又修改其内容，那么很容易就会破坏set（集合）的内部数据结构，使其失去固有的语义。</br>
+3、怎么使用？</br>答：若某属性仅可于对象内部修改，则在“class-continuation分类”中将其由readonly属性扩展为readwrite。不要把可变的collection对象作为属性公开，而应提供相关方法（增删改），以此修改对象中的可变collection。</br>
+4、相关细节请查看 [demo](https://github.com/CYBoys/EffectiveObjective-CDemo/tree/master/%E7%AC%AC18%E6%9D%A1%EF%BC%9A%E5%B0%BD%E9%87%8F%E4%BD%BF%E7%94%A8%E4%B8%8D%E5%8F%AF%E5%8F%98%E5%AF%B9%E8%B1%A1/UsingImmutableObjectsDemo)
+
+####第19条：使用清晰而协调的命名方式
+1、方法命名
+
+- 如果方法的返回值是新建的，那么方法名的首个词应是返回值的类型，除非前面还有修饰语，例如localizedString。属性的存取方法不遵循这种命名方法，因为一般认为这些方法不会创建新的对象，即便有时返回内部对象的一份拷贝，我们也认为那相当于原有的对象。这些存取方法应该按照其所对应的属性来命名。
+- 应该把表示参数类型的名词放在参数前面。
+- 如果方法要在当前对象上执行操作，那么就应该包含动词；若执行操作时还需要参数，则应该在动词后面加上一个或多个名词。
+- 不要使用str这种简称，应该使用string这样的全称。
+- Boolean属性应该加is前缀。如果某方法返回非属性的Boolean值，那么应该根据其功能，选用has或is当前缀。
+- 将get这个前缀留给那些借由“输出参数”来保存返回值的方法，比如说，把返回值填充到“C语言式数组”里的那种方法就可以使用这个词做前缀。</br>
+
+2、类与协议的命名，应该为类与协议的名称加上前缀，以避免命名空间冲突（参加第15条）
+
+####第20条：为私有方法名加前缀
+1、给私有方法的名称加上前缀，这样就可以很容易地将其公共方法区分开。</br>
+2、不要单用一个下划线（`_`）做私有方法的前缀，因为这种做法是预留给苹果公司自己用的。
+####第21条：理解Objective-C错误类型
+1、在Objective-C里面我们可以使用`NSError`来描述错误，NSError对象封装了三条信息：
+
+- Error domain（错误范围，其类型为字符串，`应该定义成NSString型的全局常量`）</br>
+错误发生的范围。也就是产生错误的根源，通常用一个特有的全局变量来定义。比方说，“处理URL的子系统” 在从URL中解析或取得数据时如果出错了，那么就会用NSURLErrorDomain来表示错误范围。
+- Error code（错误码，其类型为整数，`应该定义成枚举`）</br>
+独有的错误代码，用以指明在某个范围内具体发生了何种错误。某个特定范围内可能会发生一系列相关错误，这些错误情况通常采用enum来定义。例如，当HTTP请求出错时，可能会把HTTP状态码设为错误码。
+- User info（用户信息，其类型为字典）</br>
+有关此错误的额外信息，其中或许包含了一段“本地化的描述”（localized description），或许还含有导致该错误发生的另外一个错误，经由此种信息，可将相关错误穿成一条“错误链”。
+
+2、NSError的常见用法
+
+- 通过委托协议来传递此错误。例如：</br>
+`- (void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error`
+- 经由方法的 “输出参数” 返回给调用者。例如：
+`- (BOOL)doSomething:(NSError **)error`，传递给方法的参数是一个指针，而该指针本身又指向另一个指针，那个指针指向NSError对象。或者也可以把它当成一个直接指向NSError对象的指针。这样来一来，此方法不仅能有普通的返回值，而且还能经由“输出对象”把NSError对象回传给调用者。其用法如下：</br>
+
+	```
+	typedef NS_ENUM(NSUInteger, EOCError) {
+	    EOCErrorUnknown = -1,
+	    EOCErrorInteralInconsistency = 100,
+	    EOCErrorGeneralFault = 105,
+	    EOCErrorBadInput = 500,
+};
+
+	NSString *const EOCErrorDomain = @"EOCErrorDomain";
+	
+	- (BOOL)doSomething:(NSError **)error {
+	    // Do something that may cause an error
+	    if (/* there was an error*/) {
+	        if (error) {
+	            NSDictionary *userInfo = @{};
+	            // Pass the 'error' through the out-parameter
+	            *error = [NSError errorWithDomain:EOCErrorDomain code:EOCErrorGeneralFault userInfo:userInfo];
+	        }
+	        return NO;////< Indicate failure
+	    } else {
+	        return YES;////< Indicate success
+	    }
+	}
+	```
+	
+	```
+	NSError *error = nil;
+    BOOL ret = [self doSomething:&error];
+    if (error) {
+    //There was an error
+    }
+	```
+	
+####第22条：理解NSCopying协议
+1、要想使某个类支持拷贝功能，只需声明该类遵从 `NSCopying` 协议，并实现其中的那个方法即可。</br>
+2、如果你的类分为`可变版本`与`不可变版本`，那么就还应该实现 `NSMutableCopying` 协议 。若采用此模式，则在可变类中覆写 `copyWithZone:` 方法时，不要返回可变的拷贝，而应返回一份不可变的版本，无论当前实例是否可变，若需获取其可变版本的拷贝，均应调用 `mutableCopy` 方法。同理，若需要不可变的拷贝，则总应通过 `copy` 方法来获取。</br>对于不可变的NSArray与可变的NSMutableArray来说，下列关系总是成立的：
+
+```
+-[NSMutableArray copy] => NSArray
+-[NSArray mutableCopy] => NSMutableArray
+```
+3、实现可变版本与不可变版本之间自由切换，提供三个方法：`copy`、`immutableCopy`、`mutableCopy`，其中，copy所返回的拷贝对象与当前对象的类型一致，而另外两个方法则分别返回不可变版本与可变版本的拷贝。</br>
+4、深拷贝&浅拷贝，深拷贝的意思就是：在拷贝对象自身时，将其低层数据也一并复制过去。Foundation 框架中的所有 collection 类在默认的情况下都执行浅拷贝，也就是说只拷贝容器对象本身，而不复制其中数据。如下图所示：![浅复制&深复制.png](http://upload-images.jianshu.io/upload_images/959078-1b7d1f1aa5b0862f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240) 
+5、如何实现深拷贝？</br>答：以 `NSSet` 为例，NSSet有一个方法`- (instancetype)initWithSet:(NSSet<ObjectType> *)set copyItems:(BOOL)flag`，若 copyItems 参数为YES，则该方法会向数组中的每个元素发送copy信息，用拷贝好的元素创建新的set，并将其返回给调用者。同样的，`NSArray` 和 `NSDictionary`都有同样类似的深拷贝方法
+
+```
+//NSArray
+- (instancetype)initWithArray:(NSArray<ObjectType> *)array copyItems:(BOOL)flag
+//NSDictionary
+- (instancetype)initWithDictionary:(NSDictionary<KeyType, ObjectType> *)otherDictionary copyItems:(BOOL)flag
+```
+6、不要假定遵循了 `NSCopying` 协议的对象都会执行深拷贝，在绝大多数情况下，执行的都是浅拷贝。如果需要在某对象上执行深拷贝，那么除非该类的文档说它是用深拷贝来实现的 NSCopying 协议的，否则，要么寻找能够执行深拷贝的相关办法，要么自己编写方法来做。相关细节请查看 [demo](https://github.com/CYBoys/EffectiveObjective-CDemo/tree/master/%E7%AC%AC22%E6%9D%A1%EF%BC%9A%E7%90%86%E8%A7%A3NSCopying%E5%8D%8F%E8%AE%AE/NSCopyingDemo)
+
 
 #未完，会持续更新到完结！望持续关注！！！
