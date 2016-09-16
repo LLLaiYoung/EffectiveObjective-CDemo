@@ -349,4 +349,40 @@ super_class指针确立了继承关系，而isa指针描述了实例所属的类
 6、不要假定遵循了 `NSCopying` 协议的对象都会执行深拷贝，在绝大多数情况下，执行的都是浅拷贝。如果需要在某对象上执行深拷贝，那么除非该类的文档说它是用深拷贝来实现的 NSCopying 协议的，否则，要么寻找能够执行深拷贝的相关办法，要么自己编写方法来做。相关细节请查看 [demo](https://github.com/CYBoys/EffectiveObjective-CDemo/tree/master/%E7%AC%AC22%E6%9D%A1%EF%BC%9A%E7%90%86%E8%A7%A3NSCopying%E5%8D%8F%E8%AE%AE/NSCopyingDemo)
 
 
+##第4章 协议与分类
+####第23条：通过委托与数据源协议进行对象间通讯
+1、协议的命名为`XXXDelegate`，相关类名+Delegate</br>
+2、在协议方法中，`@require` 是必须实现的，`@optional` 的可选择实现的，默认是`@require`</br>
+3、delegate的属性需定义成 `weak`，因为两者之间必须为“非拥有关系”，如果定义成 `strong`，那么将会出现本对象与委托对象之间定为“拥有关系”，那么就会引入“保留环”（retain cycle）。</br>
+![非拥有关系.png](http://upload-images.jianshu.io/upload_images/959078-8e7a0570a3825dc9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+4、如果协议方法调用次数很频繁，则可以实现含有位段的结构体，将委托对象是否能够响应相关协议方法这一信息缓存至其中。[demo](https://github.com/CYBoys/EffectiveObjective-CDemo/tree/master/%E7%AC%AC23%E6%9D%A1%EF%BC%9A%E9%80%9A%E8%BF%87%E5%A7%94%E6%89%98%E4%B8%8E%E6%95%B0%E6%8D%AE%E6%BA%90%E5%8D%8F%E8%AE%AE%E8%BF%9B%E8%A1%8C%E5%AF%B9%E8%B1%A1%E9%97%B4%E9%80%9A%E8%AE%AF/DelegateDemo)
+
+
+####第24条：将类的实现代码分散到便于管理的数个分类之中
+1、通过分类机制，可以把类代码分成很多个易于管理的小块，以便单独检视。</br>
+2、便于调试，对于某个分类中的所有方法来说，分类名称都会出现在其符号中。</br>
+3、[demo](https://github.com/CYBoys/EffectiveObjective-CDemo/tree/master/%E7%AC%AC24%E6%9D%A1%EF%BC%9A%E5%B0%86%E7%B1%BB%E7%9A%84%E5%AE%9E%E7%8E%B0%E4%BB%A3%E7%A0%81%E5%88%86%E6%95%A3%E5%88%B0%E4%BE%BF%E4%BA%8E%E7%AE%A1%E7%90%86%E7%9A%84%E6%95%B0%E4%B8%AA%E5%88%86%E7%B1%BB%E4%B9%8B%E4%B8%AD/CategoryDemo)
+
+
+####第25条：总是为第三方类的分类名称加前缀
+1、分类中的方法是直接添加在类里面的，它们就好比这个类中的固有方法。将分类方法加入类中这一操作是在运行期系统加载分类时完成的。运行期系统会把分类中所实现的每个方法都加入类的方法列表中。如果类中本来就有此方法，而分类又实现了一次，那么分类中的方法会覆盖原来那一份实现代码。</br>
+2、自己实现的分类方法一定要添加前缀，不然覆盖了原有的方法，出现这种bug是很难查找的。
+
+####第26条：勿在分类中声明属性
+1、把封装数据所用的全部属性都定义在主接口里</br>
+2、在 “class-continuation” 分类之外的其他分类中，可以定义存取方法，但尽量不要定义属性。</br>
+3、分类的目标在于扩展类的功能，而非封装数据。
+
+####第27条：使用 “class-continuation 分类” 隐藏实现细节
+1、通过 “class-continuation 分类” 想类中新增实例变量。</br>
+2、如果某属性在主接口中声明为 “只读” ，而类的内部又要用设置方法修改此属性，那么就在 “class-continuation 分类” 中将其扩展为 “可读写” 。</br>
+3、把私有方法的原型声明在 “class-continuation 分类” 里面。</br>
+4、若想使类所遵循的协议不为人所知，则可于 “class-continuation 分类” 中声明。
+
+####第28条：通过协议提供匿名对象
+1、协议可在某种程度上提供匿名类型。具体的对象类型可以淡化成遵从某协议的id类型，协议里规定了对象所应事先的方法。</br>
+2、使用匿名对象来隐藏类型名称(或方法)。<br>
+3、如果具体类型不重要，重要的是能够响应(定义在协议里的)特定方法，那么可使用匿名对象来表示。
+
+
 #未完，会持续更新到完结！望持续关注！！！
